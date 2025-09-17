@@ -6,10 +6,23 @@ import {
   Legend, Line
 } from "recharts";
 
+// 🔹 Define Student type properly
+type Student = {
+  student_id: string;
+  name: string;
+  class: string;
+  comprehension: number;
+  attention: number;
+  focus: number;
+  retention: number;
+  assessment_score: number;
+  persona: string;
+};
+
 export default function Dashboard() {
-  const [students, setStudents] = useState<any[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [search, setSearch] = useState("");
-  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<keyof Student | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [selectedStudentId, setSelectedStudentId] = useState<string>("");
 
@@ -27,9 +40,9 @@ export default function Dashboard() {
 
   const avgStats = useMemo(() => {
     if (!displayedStudents.length) return null;
-    const fields = ["comprehension","attention","focus","retention","assessment_score"];
-    const totals = fields.map(f => displayedStudents.reduce((a,s) => a+s[f],0) / displayedStudents.length);
-    return fields.reduce((acc, f, i) => ({...acc, [f]: parseFloat(totals[i].toFixed(1))}), {});
+    const fields: (keyof Student)[] = ["comprehension","attention","focus","retention","assessment_score"];
+    const totals = fields.map(f => displayedStudents.reduce((a,s) => a + (s[f] as number), 0) / displayedStudents.length);
+    return fields.reduce((acc, f, i) => ({...acc, [f]: parseFloat(totals[i].toFixed(1))}), {} as Record<string, number>);
   }, [displayedStudents]);
 
   const filtered = useMemo(() => {
@@ -43,7 +56,9 @@ export default function Dashboard() {
     if (!sortField) return filtered;
     return [...filtered].sort((a,b) => {
       if (typeof a[sortField] === "number") {
-        return sortOrder === "asc" ? a[sortField]-b[sortField] : b[sortField]-a[sortField];
+        return sortOrder === "asc"
+          ? (a[sortField] as number) - (b[sortField] as number)
+          : (b[sortField] as number) - (a[sortField] as number);
       } else {
         return sortOrder === "asc"
           ? String(a[sortField]).localeCompare(String(b[sortField]))
@@ -100,11 +115,9 @@ export default function Dashboard() {
               {s.student_id} - {s.name}
             </option>
           ))}
-        </select><p className="text-gray-500 text-sm">Select here for a single student's performance</p>
-        
+        </select>
+        <p className="text-gray-500 text-sm ml-2">Select here for a single student&apos;s performance</p>
       </div>
-      
-      
 
       {/* Overview Stats */}
       {avgStats && (
@@ -120,7 +133,6 @@ export default function Dashboard() {
 
       {/* Charts */}
       <div className="space-y-8">
-
         {/* Skill vs Score */}
         <div className="bg-white rounded-xl shadow-md p-6">
           <h2 className="text-xl font-semibold mb-4 text-gray-700">📈 Skill vs Score</h2>
@@ -134,9 +146,7 @@ export default function Dashboard() {
                   textAnchor="end"
                   label={{ value: "Students", position: "insideBottom", offset: -5 }}
                 />
-                <YAxis
-                  label={{ value: "Scores", angle: -90, position: "insideLeft" }}
-                />
+                <YAxis label={{ value: "Scores", angle: -90, position: "insideLeft" }} />
                 <ReTooltip />
                 <Legend />
                 <Bar dataKey="comprehension" fill="#6366f1" name="Comprehension" />
@@ -156,16 +166,8 @@ export default function Dashboard() {
             <ResponsiveContainer width="100%" height="100%">
               <ScatterChart>
                 <CartesianGrid />
-                <XAxis
-                  dataKey="x"
-                  name="Attention"
-                  label={{ value: "Attention", position: "insideBottom", offset: -5 }}
-                />
-                <YAxis
-                  dataKey="y"
-                  name="Score"
-                  label={{ value: "Assessment Score", angle: -90, position: "insideLeft" }}
-                />
+                <XAxis dataKey="x" name="Attention" label={{ value: "Attention", position: "insideBottom", offset: -5 }} />
+                <YAxis dataKey="y" name="Score" label={{ value: "Assessment Score", angle: -90, position: "insideLeft" }} />
                 <ReTooltip cursor={{ strokeDasharray: "3 3" }} />
                 <Scatter data={attentionVsPerformance} fill="#8b5cf6" name="Students" />
               </ScatterChart>
@@ -212,7 +214,7 @@ export default function Dashboard() {
                     key={col}
                     onClick={()=>{
                       if (sortField===col) setSortOrder(sortOrder==="asc"?"desc":"asc");
-                      else {setSortField(col); setSortOrder("asc");}
+                      else {setSortField(col as keyof Student); setSortOrder("asc");}
                     }}
                     className="px-3 py-2 text-left text-sm font-medium cursor-pointer"
                   >
